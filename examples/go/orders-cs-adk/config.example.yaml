@@ -6,5 +6,6 @@ services:
   search_api_url: "http://localhost:8000/search"
   policy_api_url: "http://localhost:8000/policy"
   mcp_base_url: "http://localhost:8000"
+  mcp_command: ""
 server:
   port: "8080"
