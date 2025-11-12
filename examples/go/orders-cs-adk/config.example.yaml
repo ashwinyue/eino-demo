@@ -1,0 +1,9 @@
+openai:
+  api_key: "YOUR_OPENAI_API_KEY"
+  base_url: "https://api.your-openai-base.com/v1"
+  model: "gpt-4o-mini"
+services:
+  search_api_url: "http://localhost:8000/search"
+  policy_api_url: "http://localhost:8000/policy"
+server:
+  port: "8080"
