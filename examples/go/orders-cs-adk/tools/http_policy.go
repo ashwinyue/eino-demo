@@ -84,6 +84,13 @@ func NewHTTPPolicyTool(cfg *common.Config) tool.InvokableTool {
 			return "政策检索失败", nil
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			b, _ := io.ReadAll(resp.Body)
+			if len(b) == 0 {
+				return "政策检索失败", nil
+			}
+			return string(b), nil
+		}
 		b, _ := io.ReadAll(resp.Body)
 		return string(b), nil
 	})

@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -20,7 +21,16 @@ func InvokeUsingCommand(ctx context.Context, command string, args []string, name
 		return "", err
 	}
 	if res.IsError {
-		return "", nil
+		var msg string
+		for _, c := range res.Content {
+			if tc, ok := c.(*mcp.TextContent); ok {
+				msg += tc.Text
+			}
+		}
+		if msg == "" {
+			msg = "MCP tool error"
+		}
+		return "", fmt.Errorf(msg)
 	}
 	var out string
 	for _, c := range res.Content {

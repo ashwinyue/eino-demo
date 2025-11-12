@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"orders-cs-adk/common"
 )
 
 type PolicyArgs struct {
@@ -15,7 +16,9 @@ type SearchArgs struct {
 	Query string `json:"query" jsonschema:"required,description=搜索关键词"`
 }
 
-func policyTool(ctx context.Context, req *mcp.CallToolRequest, in PolicyArgs) (*mcp.CallToolResult, string, error) {
+type EmptyArgs struct{}
+
+func policyTool(ctx context.Context, req *mcp.CallToolRequest, in PolicyArgs) (*mcp.CallToolResult, any, error) {
 	q := strings.ToLower(in.Query)
 	var hits []string
 	policies := []string{
@@ -40,19 +43,46 @@ func policyTool(ctx context.Context, req *mcp.CallToolRequest, in PolicyArgs) (*
 		}
 	}
 	if len(hits) == 0 {
-		return mcp.NewToolResultText("未检索到相关政策"), "", nil
+		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "未检索到相关政策"}}}, nil, nil
 	}
-	return mcp.NewToolResultText(strings.Join(hits, "\n")), "", nil
+	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: strings.Join(hits, "\n")}}}, nil, nil
 }
 
-func searchTool(ctx context.Context, req *mcp.CallToolRequest, in SearchArgs) (*mcp.CallToolResult, string, error) {
-	return mcp.NewToolResultText("搜索结果：" + in.Query + "\n1) 示例结果A\n2) 示例结果B"), "", nil
+func searchTool(ctx context.Context, req *mcp.CallToolRequest, in SearchArgs) (*mcp.CallToolResult, any, error) {
+	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "搜索结果：" + in.Query + "\n1) 示例结果A\n2) 示例结果B"}}}, nil, nil
+}
+
+func listToolsTool(ctx context.Context, req *mcp.CallToolRequest, in EmptyArgs) (*mcp.CallToolResult, any, error) {
+	return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "policy,search"}}}, nil, nil
 }
 
 func main() {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "orders-cs-mcp", Version: "v1"}, nil)
-	mcp.AddTool(srv, &mcp.Tool{Name: "policy", Description: "检索售后与FAQ政策"}, mcp.NewStructuredToolHandler(policyTool))
-	mcp.AddTool(srv, &mcp.Tool{Name: "search", Description: "外部搜索"}, mcp.NewStructuredToolHandler(searchTool))
+	mcp.AddTool(srv, &mcp.Tool{Name: "policy", Description: "检索售后与FAQ政策"}, policyTool)
+	mcp.AddTool(srv, &mcp.Tool{Name: "search", Description: "外部搜索"}, searchTool)
+	mcp.AddTool(srv, &mcp.Tool{Name: "tools", Description: "列出可用工具"}, listToolsTool)
+	srv.AddPrompt(&mcp.Prompt{
+		Name:        "order_query",
+		Description: "订单查询交互提示",
+	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "订单查询交互提示",
+			Messages: []*mcp.PromptMessage{
+				{Role: "user", Content: &mcp.TextContent{Text: common.OrderQueryPrompt()}},
+			},
+		}, nil
+	})
+	srv.AddPrompt(&mcp.Prompt{
+		Name:        "order_cancel",
+		Description: "订单取消交互提示",
+	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "订单取消交互提示",
+			Messages: []*mcp.PromptMessage{
+				{Role: "user", Content: &mcp.TextContent{Text: common.OrderCancelPrompt()}},
+			},
+		}, nil
+	})
 	if err := srv.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		log.Fatal(err)
 	}

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -32,30 +32,17 @@ func LoadConfig(path string) (*Config, error) {
 	_ = v.ReadInConfig()
 	var cfg Config
 	_ = v.Unmarshal(&cfg)
-
-	if cfg.OpenAI.APIKey == "" {
-		cfg.OpenAI.APIKey = os.Getenv("OPENAI_API_KEY")
+	v.SetConfigName("config.local")
+	v.SetConfigType("yaml")
+	v.AddConfigPath(path)
+	v.AddConfigPath(".")
+	if err := v.MergeInConfig(); err == nil {
+		_ = v.Unmarshal(&cfg)
 	}
-	if cfg.OpenAI.BaseURL == "" {
-		cfg.OpenAI.BaseURL = os.Getenv("OPENAI_API_BASE")
-	}
-	if cfg.OpenAI.Model == "" {
-		cfg.OpenAI.Model = os.Getenv("OPENAI_MODEL")
-	}
-	if cfg.Services.SearchAPIURL == "" {
-		cfg.Services.SearchAPIURL = os.Getenv("SEARCH_API_URL")
-	}
-	if cfg.Services.PolicyAPIURL == "" {
-		cfg.Services.PolicyAPIURL = os.Getenv("POLICY_API_URL")
-	}
-	if cfg.Services.MCPBaseURL == "" {
-		cfg.Services.MCPBaseURL = os.Getenv("MCP_BASE_URL")
-	}
-	if cfg.Services.MCPCommand == "" {
-		cfg.Services.MCPCommand = os.Getenv("MCP_COMMAND")
-	}
-	if cfg.Server.Port == "" {
-		cfg.Server.Port = os.Getenv("PORT")
-	}
+	// environment variables intentionally ignored to enforce file-driven config
+	cfg.OpenAI.APIKey = strings.TrimSpace(cfg.OpenAI.APIKey)
+	cfg.OpenAI.BaseURL = strings.TrimSpace(cfg.OpenAI.BaseURL)
+	cfg.OpenAI.BaseURL = strings.Trim(cfg.OpenAI.BaseURL, "`\"' ")
+	cfg.OpenAI.Model = strings.TrimSpace(cfg.OpenAI.Model)
 	return &cfg, nil
 }
