@@ -15,6 +15,7 @@ type Config struct {
     Services struct {
         SearchAPIURL string `mapstructure:"search_api_url"`
         PolicyAPIURL string `mapstructure:"policy_api_url"`
+        MCPBaseURL    string `mapstructure:"mcp_base_url"`
     } `mapstructure:"services"`
     Server struct {
         Port string `mapstructure:"port"`
@@ -45,6 +46,9 @@ func LoadConfig(path string) (*Config, error) {
     }
     if cfg.Services.PolicyAPIURL == "" {
         cfg.Services.PolicyAPIURL = os.Getenv("POLICY_API_URL")
+    }
+    if cfg.Services.MCPBaseURL == "" {
+        cfg.Services.MCPBaseURL = os.Getenv("MCP_BASE_URL")
     }
     if cfg.Server.Port == "" {
         cfg.Server.Port = os.Getenv("PORT")

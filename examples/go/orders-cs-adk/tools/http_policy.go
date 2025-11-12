@@ -11,6 +11,7 @@ import (
     "github.com/cloudwego/eino/components/tool"
     "github.com/cloudwego/eino/components/tool/utils"
     "orders-cs-adk/common"
+    mcpc "orders-cs-adk/internal/mcp"
 )
 
 type HTTPPolicyInput struct{
@@ -18,6 +19,15 @@ type HTTPPolicyInput struct{
 }
 
 func NewHTTPPolicyTool(cfg *common.Config) tool.InvokableTool {
+    if cfg.Services.MCPBaseURL != "" {
+        client := mcpc.New(cfg.Services.MCPBaseURL)
+        t, _ := utils.InferOptionableTool("http_policy", "通过 MCP 调用政策检索服务", func(ctx context.Context, in *HTTPPolicyInput, opts ...tool.Option) (string, error) {
+            out, err := client.Invoke(ctx, "policy", map[string]any{"query": in.Query})
+            if err != nil { return "政策检索失败", nil }
+            return out, nil
+        })
+        return t
+    }
     t, _ := utils.InferOptionableTool("http_policy", "通过外部HTTP政策服务检索售后与FAQ政策", func(ctx context.Context, in *HTTPPolicyInput, opts ...tool.Option) (string, error) {
         base := cfg.Services.PolicyAPIURL
         if base == "" {
@@ -40,15 +50,10 @@ func NewHTTPPolicyTool(cfg *common.Config) tool.InvokableTool {
             return strings.Join(hits, "\n"), nil
         }
         u, _ := url.Parse(base)
-        q := u.Query()
-        q.Set("q", in.Query)
-        u.RawQuery = q.Encode()
+        q := u.Query(); q.Set("q", in.Query); u.RawQuery = q.Encode()
         req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
         hc := &http.Client{Timeout: 8 * time.Second}
-        resp, err := hc.Do(req)
-        if err != nil {
-            return "政策检索失败", nil
-        }
+        resp, err := hc.Do(req); if err != nil { return "政策检索失败", nil }
         defer resp.Body.Close()
         b, _ := io.ReadAll(resp.Body)
         return string(b), nil
